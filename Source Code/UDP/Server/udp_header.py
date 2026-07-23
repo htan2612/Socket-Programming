@@ -1,15 +1,5 @@
 import struct
-
-HEADER_FORMAT = "!IIBHH" 
-# chuỗi định dạng để encode với decode, 
-# I = unsigned int (4Byte) seq_num, ack_num
-# B = unsigned char (1Byte) flags
-# H = unsigned short(2Byte) payload_size/length, checksum
-HEADER_SIZE = struct.calcsize(HEADER_FORMAT) #13 bytes
-
-FLAG_DATA = 0x01 #packet data
-FLAG_ACK = 0x02 #packet ACK
-FLAG_FIN = 0x04 #end packet
+from Common.protocol_constants import  HEADER_FORMAT,HEADER_SIZE,FLAG_ACK,FLAG_FIN,FLAG_DATA
 
 def calculate_checksum(data : bytes) -> int:
     if len(data) % 2 == 1:

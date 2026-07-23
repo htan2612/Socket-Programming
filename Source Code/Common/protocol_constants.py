@@ -10,7 +10,7 @@ HEADER_FORMAT = "!IIHBH" # dùng với struct.pack/unpack
 HEADER_SIZE = 13
 
 # Flags (bitmask)
-FLAG_SYN = 0x01
+FLAG_DATA = 0x01
 FLAG_ACK = 0x02
 FLAG_FIN = 0x04
 FLAG_LAST_CHUNK = 0x08

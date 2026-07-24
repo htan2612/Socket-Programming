@@ -13,7 +13,7 @@ _COMMON_DIR = os.path.abspath(os.path.join(_BASE_DIR, "..", "Common"))
 if _COMMON_DIR not in sys.path:
     sys.path.append(_COMMON_DIR)
 
-from protocol_constants import TCP_CONTROL_PORT, BUFFER_SIZE
+from Common.protocol_constants import TCP_CONTROL_PORT, BUFFER_SIZE
 
 HOST = "127.0.0.1"
 PORT = TCP_CONTROL_PORT

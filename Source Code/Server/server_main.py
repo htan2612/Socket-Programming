@@ -1,8 +1,3 @@
-"""
-abcdzzz
-
-"""
-
 import os
 import sys
 import socket
@@ -10,47 +5,43 @@ import threading
 import posixpath
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-_COMMON_DIR = os.path.abspath(os.path.join(_BASE_DIR, "..", "..", "Common"))
-if _COMMON_DIR not in sys.path:
-    sys.path.append(_COMMON_DIR)
+_SOURCE_DIR = os.path.abspath(os.path.join(_BASE_DIR, ".."))
+if _SOURCE_DIR not in sys.path:
+    sys.path.append(_SOURCE_DIR)
 
-from protocol_constants import (
+from Common.protocol_constants import (
     REPLY_CODES, BUFFER_SIZE, TCP_CONTROL_PORT,
     CMD_USER, CMD_PASS, CMD_QUIT, CMD_NOOP,
     CMD_PWD, CMD_CWD, CMD_CDUP, CMD_LIST, CMD_NLST, CMD_SIZE,
 )
-from logger import log_session, log_command
-from file_scanner import scan_directory, format_list_output, format_nlst_output
-from size_converter import human_readable_size
+from Common.logger import log_session, log_command
+from Common.file_scanner import scan_directory, format_list_output, format_nlst_output
+from Common.size_converter import human_readable_size
 
 HOST = "0.0.0.0"
-PORT = TCP_CONTROL_PORT  # lay tu module chung
+PORT = TCP_CONTROL_PORT  # lấy từ module chung
 
-# "CSDL" user tam thoi cho Tuan 1 (co the thay bang co che xac thuc that o cac tuan sau)
+# "CSDL" user tạm thời cho Tuấn 1
 USER_DB = {
     "admin": "admin123",
     "guest": "guest123",
 }
 
-_SOURCE_CODE_DIR = os.path.abspath(os.path.join(_BASE_DIR, "..", ".."))
-SERVER_ROOT = os.path.abspath(os.path.join(_SOURCE_CODE_DIR, "server_root"))
+SERVER_ROOT = os.path.abspath(os.path.join(_SOURCE_DIR, "server_root"))
 os.makedirs(SERVER_ROOT, exist_ok=True)
 
-
 def build_reply(code: int, extra: str = None) -> str:
-    """Dung dung REPLY_CODES trong protocol_constants.py -> 1 nguon du lieu duy nhat,
-    tranh viec moi thanh vien tu dinh nghia 1 bo ma reply khac nhau."""
+    """Dùng đúng REPLY_CODES trong protocol_constants.py"""
     if code not in REPLY_CODES:
-        raise ValueError(f"Ma reply {code} khong ton tai trong protocol_constants.REPLY_CODES")
+        raise ValueError(f"Mã reply {code} không tồn tại trong protocol_constants.REPLY_CODES")
     message = extra if extra else REPLY_CODES[code]
     return f"{code} {message}\r\n"
 
-
 def resolve_path(cwd: str, arg: str):
     """
-    Quy doi 1 duong dan client nhap (co the tuong doi hoac tuyet doi, kieu Unix)
-    thanh (virtual_path, real_path_tren_dia). Tra ve (None, None) neu vuot ra
-    ngoai SERVER_ROOT (chong path traversal kieu '../../../etc').
+    Quy đổi 1 đường dẫn client nhập
+    thành (virtual_path, real_path_trên_đĩa). Trả về (None, None) nếu vượt ra
+    ngoài SERVER_ROOT (chống path traversal kiểu '../../../etc').
     """
     virtual = arg.strip() if arg else cwd
     if not virtual.startswith("/"):
@@ -65,9 +56,7 @@ def resolve_path(cwd: str, arg: str):
         return None, None
     return virtual, real
 
-
 _sessions = {}  # addr -> {"pending_user", "authenticated_user", "cwd"}
-
 
 def dispatch_command(line: str, addr) -> str:
     session = _sessions.setdefault(
@@ -103,7 +92,7 @@ def dispatch_command(line: str, addr) -> str:
         _sessions.pop(addr, None)
         return build_reply(221)
 
-    # ---- Nhom lenh bo sung: tich hop file_scanner / size_converter cua Thanh An ----
+    # ---- Nhóm lệnh bổ sung: tích hợp file_scanner / size_converter ----
     elif cmd in (CMD_PWD, CMD_CWD, CMD_CDUP, CMD_LIST, CMD_NLST, CMD_SIZE):
         if not session["authenticated_user"]:
             return build_reply(530, "Please login first")
@@ -132,9 +121,6 @@ def dispatch_command(line: str, addr) -> str:
                 body = format_list_output(entries) if entries else "(empty directory)"
             else:
                 body = format_nlst_output(entries) if entries else ""
-            # Ghep toan bo listing vao 1 reply duy nhat de khop voi client hien tai
-            # (client hien chi lam 1 lan recv() cho moi lenh). O cac tuan sau, neu
-            # thu muc lon, nen chuyen sang dang FTP multi-line that (150 ... 226).
             return build_reply(226, f'Listing for "{virtual}":\n{body}')
 
         if cmd == CMD_SIZE:
@@ -147,9 +133,8 @@ def dispatch_command(line: str, addr) -> str:
             readable = human_readable_size(size_bytes)
             return build_reply(250, f"{size_bytes} bytes ({readable})")
 
-    # ---- Cac lenh chua trien khai (RETR/STOR se can ket hop voi UDP data channel cua Minh Trung) ----
+    # ---- Các lệnh chưa triển khai (RETR/STOR sẽ cần kết hợp với UDP data channel) ----
     return build_reply(502, f"Command '{cmd}' not implemented (yet)")
-
 
 def handle_client(conn: socket.socket, addr):
     client_id = f"{addr[0]}:{addr[1]}"
@@ -188,14 +173,13 @@ def handle_client(conn: socket.socket, addr):
         conn.close()
         log_session(client_id, "DISCONNECTED")
 
-
 def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind((HOST, PORT))
     server.listen(5)
-    print(f"[*] TCP Control Server dang lang nghe tai {HOST}:{PORT}")
-    print(f"[*] Server root (sandbox thu muc): {SERVER_ROOT}")
+    print(f"[*] TCP Control Server đang lắng nghe tại {HOST}:{PORT}")
+    print(f"[*] Server root (sandbox thư mục): {SERVER_ROOT}")
 
     try:
         while True:
@@ -203,10 +187,9 @@ def main():
             t = threading.Thread(target=handle_client, args=(conn, addr), daemon=True)
             t.start()
     except KeyboardInterrupt:
-        print("\n[*] Dang tat server...")
+        print("\n[*] Đang tắt server...")
     finally:
         server.close()
-
 
 if __name__ == "__main__":
     main()

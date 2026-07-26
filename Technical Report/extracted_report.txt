@@ -1,0 +1,251 @@
+Dàn ý  report
+Dàn ý Report.pdf (đủ 7 mục bắt buộc theo đề)
+Trang bìa
+Trường/Khoa, môn học, tên đề tài, nhóm, MSSV, GVHD, ngày nộp
+Mục lục
+1. Application Scenario & Protocol Interaction
+Giới thiệu bài toán Hybrid FTP (control plane TCP / data plane UDP)
+Sequence diagram đầy đủ: TCP connect → USER/PASS (331→230) → lệnh điều hướng → PORT/PASV → mở UDP → truyền file (kèm ACK/timeout/retransmit) → HASH verify → QUIT
+Giải thích lý do tách control/data (đúng triết lý RFC 959)
+2. Project-Wide Data Structures
+TCP control packet: format lệnh dạng text + bảng đầy đủ 19 mã reply code (125,150,200,220,221,226,230,250,331,350,421,425,426,450,500,501,502,530,550)
+UDP custom header: bảng bit layout đủ 5 trường bắt buộc — sequence no., ACK, checksum, flags, payload length
+Session management struct: client ID, trạng thái login, thư mục hiện tại, mode Active/Passive, thread/process ID
+3. Functional Workflows (Flowcharts)
+Flowchart: Server thread-dispatch (accept → spawn thread → xử lý độc lập từng session)
+Flowchart: RDT sender state machine (send → wait ACK → timeout? → retransmit)
+Flowchart: RDT receiver state machine (nhận → check checksum → check seq → ACK/duplicate)
+Flowchart: Active/Passive mode toggle
+4. Task Assignment Matrix
+Bảng đầy đủ như Phần 2 ở trên, ghi rõ % đóng góp từng dòng
+5. Self-Assessment & Peer Evaluation
+Mỗi người tự đánh giá bằng văn bản (khó khăn, phần tự tin nhất)
+Đánh giá chéo cho 2 đồng đội còn lại
+Bảng % đóng góp cuối, tổng = 100%, có xác nhận của cả 3
+6. GenAI Usage & Code Refinement Log (bắt buộc — dễ mất điểm nhất nếu làm sơ sài)
+Bảng 3 cột tách biệt rõ ràng cho từng module đã dùng AI hỗ trợ:
+Prompt đã dùng (nguyên văn)
+Raw Output của AI (chưa sửa)
+Refinement — lỗi phát hiện & cách sinh viên tự sửa
+...
+...
+...
+Không gộp chung chung — ghi theo từng module (TCP/UDP/Common)
+Phải nêu rõ nếu AI output có dùng thư viện bị cấm và cách đã loại bỏ
+7. Application Demo Evidence
+Screenshot: upload thành công, download thành công
+Screenshot: hash trước/sau khớp nhau
+Screenshot: session table hiển thị IP + lệnh + trạng thái nhiều client
+Log: test đồng thời nhiều client, test giả lập rớt gói (chứng minh RDT hoạt động thật)
+Toàn bộ ảnh phải nhúng thẳng vào report, không để rời trong thư mục logs/
+Phụ lục
+Bảng đầy đủ 28 lệnh FTP + reply code tương ứng từng lệnh
+Hướng dẫn build/run chi tiết
+Lưu ý khi nộp (checklist theo mục 4.5 của đề)
+Compile/chạy được trên máy sạch
+Demo trực tiếp ≥1 upload + ≥1 download
+Server log hiện IP client, lệnh đã chạy, session table
+Report đủ 7 mục
+GenAI log trung thực, đủ 3 cột cho từng module
+% đóng góp đã thống nhất, có chữ ký/xác nhận 3 người
+Screenshot/hash log nhúng vào report, không để file rời
+Mỗi người tự commit Git bằng account riêng (đề có thể yêu cầu xem lịch sử commit)
+Phân công
+BẢNG PHÂN CÔNG THEO TUẦN
+🗓️ TUẦN 1 (20/7 – 26/7): Thiết kế & nền tảng
+Ngày
+Người A — TCP
+Người B — UDP
+Người C — Chung
+21–22/7
+TCP server/client cơ bản: socket→bind→listen→accept
+UDP socket cơ bản + struct header 5 trường
+protocol_constants.py + logger.py
+23–24/7
+Reply code engine (19 mã chuẩn) + USER/PASS/QUIT/NOOP
+Hàm checksum + phát hiện lỗi
+Hàm quét file/thư mục server
+25–26/7
+Test login end-to-end (331→230)
+Test gửi/nhận 1 gói UDP có ACK
+Hàm chuyển đổi size (bytes→KB/MB/GB)
+Milestone: Login TCP thành công · 1 gói UDP gửi/nhận có ACK · hàm tiện ích sẵn sàng
+🗓️ TUẦN 2 (27/7 – 2/8): Chức năng lõi
+Ngày
+Người A — TCP
+Người B — UDP
+Người C — Chung
+27–28/7
+PWD, CWD, CDUP, MKD, RMD, LIST, NLST, STAT
+RDT Stop-and-Wait: timeout + retransmit + chống trùng
+chunker.py + merge.py
+29–30/7
+PORT, PASV — mở/thương lượng data channel
+Buffer sắp thứ tự gói (reordering)
+hash_utils.py (MD5/SHA-256)
+31/7–1/8
+Tích hợp RETR/STOR → mở UDP channel; thêm SIZE, MDTM, TYPE, MODE
+Ghép chunking vào luồng RDT
+Hàm progress bar
+2/8
+Test upload/download file text end-to-end
+Cùng test với A
+Test hash so khớp trước/sau
+Milestone: RETR/STOR chạy hoàn chỉnh với file ASCII, có PASV/Active · RDT ổn định
+🗓️ TUẦN 3 (3/8 – 7/8): Nâng cao & hoàn thiện
+Ngày
+Người A — TCP
+Người B — UDP
+Người C — Chung
+3/8
+Đa luồng/đa tiến trình server + session table
+File nhị phân + test corruption
+Hàm đóng server an toàn (Ctrl+C)
+4/8
+STOU, APPE, DELE, RNFR, RNTO, ABOR, HELP → rà soát đủ 28/28 lệnh
+(Nếu kịp) Go-Back-N/Selective Repeat + sliding window
+Test đa client, giả lập rớt gói, thu screenshot
+5/8
+Cả 3: buffer sửa lỗi tích hợp toàn hệ thống, test chéo
+6/8
+Report: Data Structures (TCP) + Flowchart thread-dispatch
+Report: Data Structures (UDP header) + Flowchart RDT state machine
+Report: Giới thiệu, Sequence diagram, Môi trường lập trình, tổng hợp GenAI Log
+7/8
+Cả 3: Task Matrix, Peer Evaluation, nhúng ảnh vào report, test máy sạch, tự commit Git
+Milestone: Advanced hoàn chỉnh + Excellent một phần (hash, RDT có ACK/timeout) · Report đủ 7 mục
+🔁 Buổi học chéo bắt buộc (chống mất điểm Oral Viva cá nhân)
+Thời điểm
+Nội dung
+Thứ 4 hàng tuần
+A trình bày module TCP cho B & C, bị hỏi ngược như giám khảo
+Chủ nhật hàng tuần
+B trình bày RDT/UDP; C trình bày các hàm chung + cách tích hợp vào A, B
+III. BẢNG PHÂN CHIA CÔNG VIỆC (dạng nộp báo cáo)
+STT
+Yêu cầu
+Thực hiện
+TCP
+1.1
+Ý tưởng giao thức TCP (28 lệnh, kịch bản lệnh–reply)
+A (60%) + C (40%, review)
+1.2
+Lập trình Server TCP: auth, thư mục, dispatch lệnh, đa luồng, session table
+A
+1.3
+Lập trình Client TCP: kết nối, gửi lệnh, CLI
+A
+1.4
+PORT/PASV: thương lượng data channel
+A
+UDP
+2.1
+Ý tưởng giao thức UDP (header 5 trường, kịch bản RDT)
+B (60%) + C (40%, review)
+2.2
+Lập trình Server UDP: checksum, chống trùng, sắp thứ tự, ACK
+B
+2.3
+Lập trình Client UDP: chia gói, RDT, timeout/retransmit
+B
+2.4
+File nhị phân + test corruption
+B
+CÁC HÀM CHỨC NĂNG CHUNG
+3.1
+Hàm quét file/thư mục trên server
+C
+3.2
+Hàm chuyển đổi kích thước file
+C
+3.3
+Hàm tính & so sánh hash MD5/SHA-256
+C
+3.4
+Hàm đóng server an toàn
+C
+3.5
+Hàm hiển thị thanh tiến độ
+C
+3.6
+Hàm chia/ghép chunk file
+C (phối hợp B)
+3.7
+Hàm log hệ thống
+C
+BÁO CÁO
+4.1
+Giới thiệu + Sequence diagram tổng thể
+C
+4.2
+Phần TCP: data structure + flowchart
+A
+4.3
+Phần UDP: data structure + flowchart
+B
+4.4
+Môi trường lập trình + hướng dẫn build/run
+C
+4.5
+Task Assignment Matrix + Peer Evaluation
+Cả 3
+4.6
+GenAI Usage & Code Refinement Log
+C tổng hợp, A & B cung cấp prompt/output phần mình
+4.7
+Format lại toàn bộ report
+C
+IV. CHECKLIST TRƯỚC KHI NỘP
+Chạy được trên máy sạch, không lỗi compile
+Demo trực tiếp ≥1 upload + ≥1 download
+Server log hiện IP client, lệnh đã chạy, session table
+Đủ 28/28 lệnh FTP hoạt động với đúng reply code
+Report đủ 7 mục bắt buộc
+GenAI log trung thực, đủ 3 cột (Prompt / Raw Output / Refinement) cho từng module
+% đóng góp đã thống nhất, có xác nhận cả 3 người
+Screenshot/hash log nhúng thẳng vào Report.pdf, không để file rời
+Mỗi người tự commit Git bằng account riêng (đề có thể yêu cầu xem lịch sử commit)
+Cấu trúc đồ án
+CẤU TRÚC DỰ ÁN
+I. CẤU TRÚC THƯ MỤC DỰ ÁN
+my-project/
+│
+├── SOURCE/
+│   ├── TCP/
+│   │   ├── Server/
+│   │   │   ├── tcp_server_main.py       # socket → bind → listen → accept
+│   │   │   ├── session_manager.py       # quản lý thread/session, session table
+│   │   │   ├── command_handler.py       # dispatch 28 lệnh FTP
+│   │   │   ├── reply_codes.py           # bảng mã 3 chữ số
+│   │   │   ├── active_passive.py        # xử lý PORT / PASV
+│   │   │   └── file_ops.py              # STOR/RETR/APPE/DELE/RNFR/RNTO/STOU
+│   │   └── Client/
+│   │       ├── tcp_client_main.py       # kết nối control channel
+│   │       └── cli_interface.py         # CLI hiển thị trạng thái
+│   │
+│   ├── UDP/
+│   │   ├── Server/
+│   │   │   ├── udp_server_main.py       # bind, recvfrom loop
+│   │   │   ├── udp_header.py            # seq, ack, checksum, flags, length
+│   │   │   ├── rdt_receiver.py          # state machine nhận + ACK
+│   │   │   ├── file_reassembler.py      # ghép gói thành file
+│   │   │   └── hash_utils.py            # MD5/SHA-256
+│   │   └── Client/
+│   │       ├── udp_client_main.py       # sendto
+│   │       ├── rdt_sender.py            # state machine gửi + timeout/retransmit
+│   │       └── file_chunker.py          # chia file thành gói
+│   │
+│   └── Common/
+│       ├── protocol_constants.py        # port, buffer size, timeout mặc định
+│       ├── logger.py                    # log dùng chung (session/command/transfer)
+│       ├── file_scanner.py              # quét file/thư mục server
+│       ├── size_converter.py            # bytes → KB/MB/GB
+│       ├── progress_bar.py              # thanh tiến độ truyền
+│       └── merge_chunk.py               # ghép chunk (dùng chung với UDP)
+│
+├── logs/                                # log & screenshot demo
+├── docs/                                # sequence diagram, flowchart gốc
+├── README.md                            # hướng dẫn build & run
+├── .gitignore
+├── .git/                                # lịch sử commit (mỗi người tự commit)
+└── Report.pdf                           # báo cáo kỹ thuật chính

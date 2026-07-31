@@ -1,0 +1,13 @@
+# Python compiled bytecode
+**/__pycache__/
+*.pyc
+
+# Local log files
+logs/*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Technical Report folder
+Technical Report/

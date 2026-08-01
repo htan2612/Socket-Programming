@@ -39,19 +39,19 @@ def read_file_chunks(file_path: str, chunk_size: int = DEFAULT_CHUNK_SIZE):
 
 def send_file_via_rdt(sender: RDTSender, file_path: str, chunk_size: int = DEFAULT_CHUNK_SIZE) -> bool:
     """
-    Đọc tệp tin và truyền toàn bộ các chunk qua kết nối RDTSender.
+    Đọc tệp tin và truyền toàn bộ các chunk qua kết nối RDTSender bằng Sliding Window.
     """
-    print(f"[FileChunker] Bắt đầu đọc và gửi file: {file_path}")
+    print(f"[FileChunker] Bắt đầu đọc và gửi file qua Sliding Window: {file_path}")
     
     try:
-        for chunk, is_last in read_file_chunks(file_path, chunk_size):
-            success = sender.send_chunk(chunk, is_last=is_last)
-            if not success:
-                print(f"[FileChunker ERROR] Đã xảy ra lỗi khi gửi chunk dữ liệu của file {file_path}.")
-                return False
+        chunks_gen = read_file_chunks(file_path, chunk_size)
+        success = sender.send_file_stream(chunks_gen)
+        if not success:
+            print(f"[FileChunker ERROR] Đã xảy ra lỗi khi truyền file {file_path}.")
+            return False
                 
         print(f"[FileChunker] Đã hoàn thành gửi file: {file_path}")
         return True
     except Exception as e:
         print(f"[FileChunker ERROR] Lỗi hệ thống tệp: {e}")
-        return False
+        return False

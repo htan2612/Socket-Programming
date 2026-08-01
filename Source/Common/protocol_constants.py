@@ -1,8 +1,13 @@
 # Network
 TCP_CONTROL_PORT = 2121
 BUFFER_SIZE = 4096
-UDP_TIMEOUT = 2.0 # s, xài cho RDT retransmit
+UDP_TIMEOUT = 0.5 # s, xài cho RDT retransmit
 MAX_RETRIES = 5
+
+# Sliding Window & Congestion Control
+DEFAULT_WINDOW_SIZE = 8
+MAX_WINDOW_SIZE = 16
+
 
 # UDP custom header (5 trường bắt buộc)
 # seq(4B) + ack(4B) + checksum(2B) + flags(1B) + length(2B) = 13 bytes

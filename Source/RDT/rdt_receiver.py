@@ -1,6 +1,7 @@
 import os
 import sys
 import socket
+from typing import Optional
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _SOURCE_DIR = os.path.abspath(os.path.join(_BASE_DIR, ".."))
@@ -8,36 +9,56 @@ if _SOURCE_DIR not in sys.path:
     sys.path.append(_SOURCE_DIR)
 
 from RDT.udp_header import pack_packet, unpack_packet
+from RDT.file_reassembler import FileReassembler
 from Common.protocol_constants import FLAG_ACK, FLAG_FIN
 
 class RDTReceiver:
+    """
+    RDTReceiver nhận luồng gói tin UDP theo chuẩn Cumulative ACK (Go-Back-N / Selective Repeat),
+    phản hồi ACK và chuyển payload cho FileReassembler xử lý lắp ráp file.
+    """
     def __init__(self, sock: socket.socket):
         self.sock = sock
-        self.expected_seq = 0
-        self.buffer = {}  # Bộ đệm lưu {seq_num: payload}
 
-    def receive_file(self):
+    def receive_file(self, output_path: Optional[str] = None) -> FileReassembler:
+        """
+        Nhận toàn bộ file qua UDP RDT và sử dụng FileReassembler để ghi xuống đĩa hoặc RAM.
+        :param output_path: Đường dẫn lưu file. Nếu None, lưu dữ liệu trong RAM.
+        :return: Đối tượng FileReassembler đã hoàn tất (chứa data hoặc đường dẫn file + Hash)
+        """
+        reassembler = FileReassembler(output_path=output_path)
+        last_sender_addr = None
+
         while True:
-            raw_bytes, sender_addr = self.sock.recvfrom(2048)
-            seq, ack, flags, length, payload, is_valid = unpack_packet(raw_bytes)
+            try:
+                raw_bytes, sender_addr = self.sock.recvfrom(4096)
+                last_sender_addr = sender_addr
+                seq, ack, flags, length, payload, is_valid = unpack_packet(raw_bytes)
 
-            # 1. Nếu gói tin bị hỏng Checksum -> Bỏ qua
-            if not is_valid:
-                continue
+                # 1. Nếu gói tin bị hỏng Checksum -> Bỏ qua không phản hồi ACK (Sender sẽ timeout & retransmit)
+                if not is_valid:
+                    print(f"[RDT Receiver] Bỏ qua gói tin hỏng Checksum (Seq={seq})")
+                    continue
 
-            # 2. Gửi ACK phản hồi ngay lập tức cho bên gửi
-            ack_packet = pack_packet(0, seq, FLAG_ACK, b'')
-            self.sock.sendto(ack_packet, sender_addr)
+                # 2. Thêm mẩu dữ liệu vào FileReassembler
+                is_last = bool(flags & FLAG_FIN)
+                accepted = reassembler.add_chunk(seq_num=seq, payload=payload, is_last=is_last)
 
-            # 3. Xử lý lưu dữ liệu (Chống trùng lặp)
-            if seq == self.expected_seq:
-                self.buffer[seq] = payload
-                self.expected_seq += 1
+                # 3. Phản hồi ACK: Gửi ACK với ack_num là gói tin đã ghép liên tục mới nhất
+                # Phản hồi ACK(seq) cho gói vừa nhận thành công
+                ack_packet = pack_packet(0, seq, FLAG_ACK, b'')
+                self.sock.sendto(ack_packet, sender_addr)
 
-            # 4. Kiểm tra cờ FIN (kết thúc file)
-            if flags & FLAG_FIN and seq == self.expected_seq - 1:
-                break
+                # 4. Kiểm tra hoàn tất ghép file
+                if reassembler.is_complete():
+                    # Gửi thêm 3 gói ACK dự phòng cho cờ FIN để đảm bảo Sender nhận được ACK gói cuối
+                    for _ in range(3):
+                        self.sock.sendto(ack_packet, sender_addr)
+                    break
 
-        # Sắp xếp và nối toàn bộ mảng byte theo đúng thứ tự
-        complete_data = b''.join([self.buffer[i] for i in sorted(self.buffer.keys())])
-        return complete_data
+            except socket.timeout:
+                # Nếu đã hoàn tất file thì thoát vòng lặp
+                if reassembler.is_complete():
+                    break
+
+        return reassembler

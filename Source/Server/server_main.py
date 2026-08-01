@@ -13,10 +13,12 @@ from Common.protocol_constants import (
     REPLY_CODES, BUFFER_SIZE, TCP_CONTROL_PORT,
     CMD_USER, CMD_PASS, CMD_QUIT, CMD_NOOP,
     CMD_PWD, CMD_CWD, CMD_CDUP, CMD_LIST, CMD_NLST, CMD_SIZE,
+    CMD_HASH,
 )
 from Common.logger import log_session, log_command
 from Common.file_scanner import scan_directory, format_list_output, format_nlst_output
 from Common.size_converter import human_readable_size
+from Common.hash_utils import calculate_hash
 
 HOST = "0.0.0.0"
 PORT = TCP_CONTROL_PORT  # lấy từ module chung
@@ -92,8 +94,8 @@ def dispatch_command(line: str, addr) -> str:
         _sessions.pop(addr, None)
         return build_reply(221)
 
-    # ---- Nhóm lệnh bổ sung: tích hợp file_scanner / size_converter ----
-    elif cmd in (CMD_PWD, CMD_CWD, CMD_CDUP, CMD_LIST, CMD_NLST, CMD_SIZE):
+    # ---- Nhóm lệnh bổ sung: tích hợp file_scanner / size_converter / hash_utils ----
+    elif cmd in (CMD_PWD, CMD_CWD, CMD_CDUP, CMD_LIST, CMD_NLST, CMD_SIZE, CMD_HASH):
         if not session["authenticated_user"]:
             return build_reply(530, "Please login first")
 
@@ -132,6 +134,17 @@ def dispatch_command(line: str, addr) -> str:
             size_bytes = os.path.getsize(real)
             readable = human_readable_size(size_bytes)
             return build_reply(250, f"{size_bytes} bytes ({readable})")
+
+        if cmd == CMD_HASH:
+            if not arg:
+                return build_reply(501, "Syntax error: HASH requires a filename")
+            virtual, real = resolve_path(session["cwd"], arg)
+            if virtual is None or not os.path.isfile(real):
+                return build_reply(550, "File unavailable")
+            hash_value = calculate_hash(real, algorithm='md5')
+            if not hash_value:
+                return build_reply(450, "Could not compute hash")
+            return build_reply(250, f"MD5 {hash_value}")
 
     # ---- Các lệnh chưa triển khai (RETR/STOR sẽ cần kết hợp với UDP data channel) ----
     return build_reply(502, f"Command '{cmd}' not implemented (yet)")

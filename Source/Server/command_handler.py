@@ -4,7 +4,6 @@ command_handler.py
 
 import os
 import sys
-import hashlib
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _SOURCE_DIR = os.path.abspath(os.path.join(_BASE_DIR, ".."))
@@ -24,12 +23,13 @@ from reply_codes import build_reply
 from session_manager import session_manager
 import server_file_ops as fops
 import active_passive as ap
+from Common.hash_utils import calculate_hash
 
-# "CSDL" user tạm thời
 USER_DB = {
     "admin": "admin123",
     "guest": "guest123",
 }
+
 
 _NO_AUTH_REQUIRED = {CMD_USER, CMD_PASS, CMD_QUIT, CMD_NOOP, CMD_HELP}
 
@@ -83,7 +83,7 @@ def dispatch_command(line: str, addr) -> str:
     return handler(session, arg)
 
 
-#  Nhóm: Xác thực 
+# ==================== Nhóm: Xác thực ====================
 
 def _h_user(session, arg):
     if not arg:
@@ -115,7 +115,8 @@ def _h_noop(session, arg):
     return build_reply(200)
 
 
-# Nhóm: Duyệt thư mục (server_file_ops) 
+# ==================== Nhóm: Duyệt thư mục (server_file_ops) ====================
+
 def _h_pwd(session, arg):
     return build_reply(250, f'"{fops.pwd(session.cwd)}" is the current directory')
 
@@ -215,7 +216,7 @@ def _h_rnfr(session, arg):
     if not ok:
         return build_reply(550, result)
     session.rename_from = result
-    return build_reply(350) 
+    return build_reply(350)  
 
 
 def _h_rnto(session, arg):
@@ -236,16 +237,13 @@ def _h_hash(session, arg):
     virtual, real = fops.resolve_path(session.cwd, arg)
     if virtual is None or not os.path.isfile(real):
         return build_reply(550, "File unavailable")
-    # TODO: khi Common/hash_utils.py 
-
-    h = hashlib.sha256()
-    with open(real, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            h.update(chunk)
-    return build_reply(250, f"SHA256 {h.hexdigest()} {virtual}")
+    digest = calculate_hash(real, algorithm="sha256")
+    if not digest:
+        return build_reply(550, "Cannot compute hash (file unavailable)")
+    return build_reply(250, f"SHA256 {digest} {virtual}")
 
 
-
+# ==================== Nhóm: TYPE / MODE ====================
 
 def _h_type(session, arg):
     value = arg.strip().upper()
@@ -264,7 +262,7 @@ def _h_mode(session, arg):
     return build_reply(200, f"Mode set to {value}")
 
 
-#  Nhóm: PORT / PASV (active_passive.py)
+# ==================== Nhóm: PORT / PASV (active_passive.py) ====================
 
 def _h_port(session, arg):
     ok, message = ap.handle_port(session, arg)
@@ -285,8 +283,7 @@ def _h_abor(session, arg):
     return build_reply(226, "ABOR command successful; no active transfer")
 
 
-#  Nhóm: RETR/STOR/STOU/APPE 
-
+# ==================== Nhóm: RETR/STOR/STOU/APPE ====================
 
 def _h_retr(session, arg):
     if not arg:
@@ -336,7 +333,7 @@ def _h_stou(session, arg):
     )
 
 
-#  HELP 
+# ==================== HELP ====================
 
 def _h_help(session, arg):
     if arg:

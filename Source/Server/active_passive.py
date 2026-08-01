@@ -1,12 +1,8 @@
-# active_passive.py
-# PORT and PASV data connection listener placeholder
 """
 active_passive.py
-
 """
 
 import socket
-
 
 PASV_PORT_RANGE = (50000, 51000)
 
@@ -44,9 +40,9 @@ def handle_port(session, arg: str):
 
 def handle_pasv(session, server_public_host: str = "127.0.0.1"):
 
-    session.close_data_channel() 
+    session.close_data_channel()  
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     bound = False
@@ -62,11 +58,10 @@ def handle_pasv(session, server_public_host: str = "127.0.0.1"):
         sock.close()
         return False, "Can't open data connection (no free port in PASV range)"
 
-    sock.listen(1)
     _, actual_port = sock.getsockname()
 
     session.data_mode = "passive"
-    session.pasv_socket = sock
+    session.pasv_socket = sock      
     session.pasv_port = actual_port
 
     h1, h2, h3, h4 = server_public_host.split(".")

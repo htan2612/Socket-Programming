@@ -1,5 +1,14 @@
+import os
+import sys
 import socket
-from UDP.Server.udp_header import pack_packet, unpack_packet, FLAG_DATA, FLAG_ACK, FLAG_FIN
+
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_SOURCE_DIR = os.path.abspath(os.path.join(_BASE_DIR, ".."))
+if _SOURCE_DIR not in sys.path:
+    sys.path.append(_SOURCE_DIR)
+
+from RDT.udp_header import pack_packet, unpack_packet
+from Common.protocol_constants import FLAG_DATA, FLAG_ACK, FLAG_FIN
 
 class RDTSender:
     def __init__(self, sock: socket.socket, dest_ip: str, dest_port: int, timeout=0.5, max_retries = 10):
@@ -29,8 +38,7 @@ class RDTSender:
                     return True  # Truyền thành công gói này!
             except socket.timeout:
                 # Hết thời gian chờ ACK -> Tự động gửi lại (Retransmit)
-
-                retries+=1
+                retries += 1
                 print(f"[RDT Sender] Timeout! Gửi lại lần {retries}/{self.max_retries} (Seq={self.seq_num})...")
 
         print(f"[RDT Sender ERROR] Vượt quá số lần thử lại tối đa ({self.max_retries}). Hủy truyền tệp!")

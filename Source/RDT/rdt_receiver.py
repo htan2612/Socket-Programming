@@ -1,5 +1,14 @@
+import os
+import sys
 import socket
-from UDP.Server.udp_header import pack_packet, unpack_packet, FLAG_ACK, FLAG_FIN
+
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_SOURCE_DIR = os.path.abspath(os.path.join(_BASE_DIR, ".."))
+if _SOURCE_DIR not in sys.path:
+    sys.path.append(_SOURCE_DIR)
+
+from RDT.udp_header import pack_packet, unpack_packet
+from Common.protocol_constants import FLAG_ACK, FLAG_FIN
 
 class RDTReceiver:
     def __init__(self, sock: socket.socket):
@@ -26,7 +35,7 @@ class RDTReceiver:
                 self.expected_seq += 1
 
             # 4. Kiểm tra cờ FIN (kết thúc file)
-            if flags & FLAG_FIN:
+            if flags & FLAG_FIN and seq == self.expected_seq - 1:
                 break
 
         # Sắp xếp và nối toàn bộ mảng byte theo đúng thứ tự

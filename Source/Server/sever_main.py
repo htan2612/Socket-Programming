@@ -42,7 +42,7 @@ def handle_client(conn: socket.socket, addr):
                 if not line:
                     continue
 
-                reply = dispatch_command(line, addr)
+                reply = dispatch_command(line, addr, conn)
                 code = int(reply.split(" ", 1)[0])
                 log_command(client_id, line, code)
 

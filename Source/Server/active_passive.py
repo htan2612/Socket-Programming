@@ -1,11 +1,17 @@
 """
 active_passive.py
+<<<<<<< HEAD
 
+=======
+>>>>>>> f139de225dd3fd8e0985106c0b882d5e0a82a494
 """
 
 import socket
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> f139de225dd3fd8e0985106c0b882d5e0a82a494
 PASV_PORT_RANGE = (50000, 51000)
 
 
@@ -42,9 +48,15 @@ def handle_port(session, arg: str):
 
 def handle_pasv(session, server_public_host: str = "127.0.0.1"):
 
+<<<<<<< HEAD
     session.close_data_channel() 
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+=======
+    session.close_data_channel()  
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+>>>>>>> f139de225dd3fd8e0985106c0b882d5e0a82a494
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     bound = False
@@ -60,11 +72,18 @@ def handle_pasv(session, server_public_host: str = "127.0.0.1"):
         sock.close()
         return False, "Can't open data connection (no free port in PASV range)"
 
+<<<<<<< HEAD
     sock.listen(1)
     _, actual_port = sock.getsockname()
 
     session.data_mode = "passive"
     session.pasv_socket = sock
+=======
+    _, actual_port = sock.getsockname()
+
+    session.data_mode = "passive"
+    session.pasv_socket = sock      
+>>>>>>> f139de225dd3fd8e0985106c0b882d5e0a82a494
     session.pasv_port = actual_port
 
     h1, h2, h3, h4 = server_public_host.split(".")

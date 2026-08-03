@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _SOURCE_DIR = os.path.abspath(os.path.join(_BASE_DIR, ".."))
@@ -8,7 +7,6 @@ if _SOURCE_DIR not in sys.path:
     sys.path.append(_SOURCE_DIR)
 
 from RDT.rdt_sender import RDTSender
-from Common.progress_bar import print_progress
 
 DEFAULT_CHUNK_SIZE = 1024
 
@@ -40,22 +38,18 @@ def read_file_chunks(file_path: str, chunk_size: int = DEFAULT_CHUNK_SIZE):
 
 
 def send_file_via_rdt(sender: RDTSender, file_path: str, chunk_size: int = DEFAULT_CHUNK_SIZE) -> bool:
-    print(f"[FileChunker] Bắt đầu đọc và gửi file: {file_path}")
-
-    file_size = os.path.getsize(file_path)
-    bytes_sent = 0
-    start_time = time.time()
-
+    """
+    Đọc tệp tin và truyền toàn bộ các chunk qua kết nối RDTSender bằng Sliding Window.
+    """
+    print(f"[FileChunker] Bắt đầu đọc và gửi file qua Sliding Window: {file_path}")
+    
     try:
-        for chunk, is_last in read_file_chunks(file_path, chunk_size):
-            success = sender.send_chunk(chunk, is_last=is_last)
-            if not success:
-                print(f"[FileChunker ERROR] Đã xảy ra lỗi khi gửi chunk dữ liệu của file {file_path}.")
-                return False
-
-            bytes_sent += len(chunk)
-            print_progress(bytes_sent, file_size, start_time, prefix="Đang gửi:")
-
+        chunks_gen = read_file_chunks(file_path, chunk_size)
+        success = sender.send_file_stream(chunks_gen)
+        if not success:
+            print(f"[FileChunker ERROR] Đã xảy ra lỗi khi truyền file {file_path}.")
+            return False
+                
         print(f"[FileChunker] Đã hoàn thành gửi file: {file_path}")
         return True
     except Exception as e:

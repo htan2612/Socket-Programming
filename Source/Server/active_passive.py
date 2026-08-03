@@ -1,5 +1,6 @@
 """
 active_passive.py
+
 """
 
 import socket
@@ -40,7 +41,7 @@ def handle_port(session, arg: str):
 
 def handle_pasv(session, server_public_host: str = "127.0.0.1"):
 
-    session.close_data_channel()  
+    session.close_data_channel()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -61,7 +62,7 @@ def handle_pasv(session, server_public_host: str = "127.0.0.1"):
     _, actual_port = sock.getsockname()
 
     session.data_mode = "passive"
-    session.pasv_socket = sock      
+    session.pasv_socket = sock
     session.pasv_port = actual_port
 
     h1, h2, h3, h4 = server_public_host.split(".")

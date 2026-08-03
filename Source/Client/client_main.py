@@ -191,7 +191,8 @@ def do_upload(conn: ControlConnection, ftp_command: str, local_path: str):
         return
 
     pasv_reply = send_and_print(conn, "PASV")
-    if get_code(pasv_reply) != 200:
+    code = get_code(pasv_reply)
+    if code not in (200, 227):
         return
     addr = parse_data_addr(pasv_reply)
     if addr is None:

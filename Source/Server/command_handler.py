@@ -25,7 +25,7 @@ from Common.logger import log_transfer
 
 from reply_codes import build_reply
 from session_manager import session_manager
-import server_file_ops as fops
+import file_ops as fops
 import active_passive as ap
 
 from RDT.rdt_sender import RDTSender

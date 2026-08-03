@@ -1,0 +1,4 @@
+[2026-08-03 17:14:05] [TRANSFER] 127.0.0.1:64529 UPLOAD /hello.txt - START
+[2026-08-03 17:14:07] [TRANSFER] 127.0.0.1:64529 UPLOAD /hello.txt - DONE
+[2026-08-03 17:14:56] [TRANSFER] 127.0.0.1:64529 DOWNLOAD /C:\Users\ASUS\Downloads\Socket\Source\server_root\hello.txt - START
+[2026-08-03 17:14:56] [TRANSFER] 127.0.0.1:64529 DOWNLOAD /C:\Users\ASUS\Downloads\Socket\Source\server_root\hello.txt - DONE
